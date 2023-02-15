@@ -118,7 +118,7 @@ class VAEDataset(LightningDataModule):
         data_path: str,
         train_batch_size: int = 8,
         val_batch_size: int = 8,
-        patch_size: Union[int, Sequence[int]] = (256, 256, 2),
+        patch_size: Union[int, Sequence[int]] = (256, 256),
         num_workers: int = 0,
         pin_memory: bool = False,
         **kwargs,
@@ -190,18 +190,24 @@ class VAEDataset(LightningDataModule):
 
         train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
                                             #   transforms.CenterCrop(148),
-                                            #   transforms.Resize(self.patch_size),
-                                              transforms.ToTensor(),])
+                                              transforms.Resize(self.patch_size),
+                                              transforms.ToTensor(),
+                                              transforms.Normalize(mean=[0.5, 0.5],
+                                                                  std=[0.5, 0.5]),])
         
         val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
                                             # transforms.CenterCrop(148),
-                                            # transforms.Resize(self.patch_size),
-                                            transforms.ToTensor(),])
+                                            transforms.Resize(self.patch_size),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize(mean=[0.5, 0.5],
+                                                                  std=[0.5, 0.5]),])
         
         test_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
                                             # transforms.CenterCrop(148),
-                                            # transforms.Resize(self.patch_size),
-                                            transforms.ToTensor(),])
+                                            transforms.Resize(self.patch_size),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize(mean=[0.5, 0.5],
+                                                                  std=[0.5, 0.5]),])
         
 
         self.train_dataset = MitoSpace(
