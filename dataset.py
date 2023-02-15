@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.datasets import CelebA
 import zipfile
+import numpy as np
+from PIL import Image
 
 
 # Add your custom dataset class here
@@ -62,6 +64,39 @@ class OxfordPets(Dataset):
             img = self.transforms(img)
         
         return img, 0.0 # dummy datat to prevent breaking 
+    
+
+class MitoSpace(Dataset):
+    def __init__(self, 
+                 data_path: str, 
+                 split: str,
+                 transform: Callable,
+                **kwargs):
+        if split == "train":
+            self.data_dir = Path(data_path) / "MitoSpace_Data/MitoSpace_Correct_Split/20221018_Zach/Train/Sample_1/1/Patches_Self_Norm_Nucleus_Centered_1_x_256_x_256/"
+        elif split == "valid":
+            self.data_dir = Path(data_path) / "MitoSpace_Data/MitoSpace_Correct_Split/20221018_Zach/Val/Sample_1/3/Patches_Self_Norm_Nucleus_Centered_1_x_256_x_256/"
+        else:
+            self.data_dir = Path(data_path) / "MitoSpace_Data/MitoSpace_Correct_Split/20221018_Zach/Test/Sample_1/2/Patches_Self_Norm_Nucleus_Centered_1_x_256_x_256/"
+        self.transforms = transform
+
+        self.imgs = sorted([f for f in self.data_dir.iterdir() if f.suffix == '.npy'])
+
+    def __len__(self):
+        return len(self.imgs)
+    
+    def npy_loader(self, idx):
+        val = np.uint8(np.load(self.imgs[idx])*255)
+        # print(np.mean(val), np.max(val))
+        return Image.fromarray(val.reshape((256, 256, 2)))
+    
+    def __getitem__(self, idx):
+        img = self.npy_loader(idx)
+        
+        if self.transforms is not None:
+            img = self.transforms(img)
+        
+        return img, 0.0 # dummy datat to prevent breaking 
 
 class VAEDataset(LightningDataModule):
     """
@@ -83,7 +118,7 @@ class VAEDataset(LightningDataModule):
         data_path: str,
         train_batch_size: int = 8,
         val_batch_size: int = 8,
-        patch_size: Union[int, Sequence[int]] = (256, 256),
+        patch_size: Union[int, Sequence[int]] = (256, 256, 2),
         num_workers: int = 0,
         pin_memory: bool = False,
         **kwargs,
@@ -126,31 +161,72 @@ class VAEDataset(LightningDataModule):
         
 #       =========================  CelebA Dataset  =========================
     
+        # train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
+        #                                       transforms.CenterCrop(148),
+        #                                       transforms.Resize(self.patch_size),
+        #                                       transforms.ToTensor(),])
+        
+        # val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
+        #                                     transforms.CenterCrop(148),
+        #                                     transforms.Resize(self.patch_size),
+        #                                     transforms.ToTensor(),])
+        
+        # self.train_dataset = MyCelebA(
+        #     self.data_dir,
+        #     split='train',
+        #     transform=train_transforms,
+        #     download=False,
+        # )
+        
+        # # Replace CelebA with your dataset
+        # self.val_dataset = MyCelebA(
+        #     self.data_dir,
+        #     split='test',
+        #     transform=val_transforms,
+        #     download=False,
+        # )
+#       ===============================================================
+        
+
         train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                              transforms.CenterCrop(148),
-                                              transforms.Resize(self.patch_size),
+                                            #   transforms.CenterCrop(148),
+                                            #   transforms.Resize(self.patch_size),
                                               transforms.ToTensor(),])
         
         val_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                            transforms.CenterCrop(148),
-                                            transforms.Resize(self.patch_size),
+                                            # transforms.CenterCrop(148),
+                                            # transforms.Resize(self.patch_size),
                                             transforms.ToTensor(),])
         
-        self.train_dataset = MyCelebA(
+        test_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                            # transforms.CenterCrop(148),
+                                            # transforms.Resize(self.patch_size),
+                                            transforms.ToTensor(),])
+        
+
+        self.train_dataset = MitoSpace(
             self.data_dir,
             split='train',
             transform=train_transforms,
             download=False,
         )
         
-        # Replace CelebA with your dataset
-        self.val_dataset = MyCelebA(
+        self.valid_dataset = MitoSpace(
             self.data_dir,
-            split='test',
+            split='valid',
             transform=val_transforms,
             download=False,
         )
-#       ===============================================================
+
+        self.val_dataset = MitoSpace(
+            self.data_dir,
+            split='test',
+            transform=test_transforms,
+            download=False,
+        )
+
+
+#           =====================================================
         
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

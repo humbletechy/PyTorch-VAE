@@ -86,6 +86,7 @@ class VanillaVAE(BaseVAE):
 
         # Split the result into mu and var components
         # of the latent Gaussian distribution
+        print(result.shape)
         mu = self.fc_mu(result)
         log_var = self.fc_var(result)
 
