@@ -57,6 +57,7 @@ class OxfordPets(Dataset):
     def __len__(self):
         return len(self.imgs)
     
+    
     def __getitem__(self, idx):
         img = default_loader(self.imgs[idx])
         
